@@ -262,7 +262,7 @@ class ConsentMixin:
             server_icon_url = None
             server_website_url = None
 
-        html = create_consent_html(
+        html = self.create_consent_html(
             client_id=txn["client_id"],
             redirect_uri=txn["client_redirect_uri"],
             scopes=txn.get("scopes") or [],
@@ -359,3 +359,10 @@ class ConsentMixin:
             return create_secure_html_response(
                 "<h1>Error</h1><p>Invalid action</p>", status_code=400
             )
+
+    # -------------------------------------------------------------------------
+    # HTML Creation Methods (for overriding)
+    # -------------------------------------------------------------------------
+
+    def create_consent_html(self, *args: Any, **kwargs: Any) -> str:
+        return create_consent_html(*args, **kwargs)

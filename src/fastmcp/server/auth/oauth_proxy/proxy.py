@@ -472,13 +472,13 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         # Refresh token metadata storage, keyed by token hash for security.
         # We only store metadata (not the token itself) - if storage is compromised,
         # attackers get hashes they can't reverse into usable tokens.
-        self._refresh_token_store: PydanticAdapter[RefreshTokenMetadata] = (
-            PydanticAdapter[RefreshTokenMetadata](
-                key_value=self._client_storage,
-                pydantic_model=RefreshTokenMetadata,
-                default_collection="mcp-refresh-tokens",
-                raise_on_validation_error=True,
-            )
+        self._refresh_token_store: PydanticAdapter[
+            RefreshTokenMetadata
+        ] = PydanticAdapter[RefreshTokenMetadata](
+            key_value=self._client_storage,
+            pydantic_model=RefreshTokenMetadata,
+            default_collection="mcp-refresh-tokens",
+            raise_on_validation_error=True,
         )
 
         # Use the provided token validator
@@ -878,9 +878,9 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         upstream_token_set = UpstreamTokenSet(
             upstream_token_id=upstream_token_id,
             access_token=idp_tokens["access_token"],
-            refresh_token=idp_tokens["refresh_token"]
-            if idp_tokens.get("refresh_token")
-            else None,
+            refresh_token=(
+                idp_tokens["refresh_token"] if idp_tokens.get("refresh_token") else None
+            ),
             refresh_token_expires_at=refresh_token_expires_at,
             expires_at=time.time() + expires_in,
             token_type=idp_tokens.get("token_type", "Bearer"),
@@ -1488,7 +1488,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
                     error_description,
                 )
                 # Show error page to user
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message=f"Authentication failed: {error_description or 'Unknown error'}",
                     error_details={"Error Code": error} if error else None,
@@ -1497,7 +1497,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
 
             if not idp_code or not txn_id:
                 logger.error("IdP callback missing code or transaction ID")
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message="Missing authorization code or transaction ID from the identity provider.",
                 )
@@ -1507,7 +1507,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
             transaction_model = await self._transaction_store.get(key=txn_id)
             if not transaction_model:
                 logger.error("IdP callback with invalid transaction ID: %s", txn_id)
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message="Invalid or expired authorization transaction. Please try authenticating again.",
                 )
@@ -1577,7 +1577,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
 
             except Exception as e:
                 logger.error("IdP token exchange failed: %s", e)
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message=f"Token exchange with identity provider failed: {e}",
                 )
@@ -1628,8 +1628,15 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
 
         except Exception as e:
             logger.error("Error in IdP callback handler: %s", e, exc_info=True)
-            html_content = create_error_html(
+            html_content = self.create_error_html(
                 error_title="OAuth Error",
                 error_message="Internal server error during OAuth callback processing. Please try again.",
             )
             return HTMLResponse(content=html_content, status_code=500)
+
+    # -------------------------------------------------------------------------
+    # HTML Creation Methods (for overriding)
+    # -------------------------------------------------------------------------
+
+    def create_error_html(self, *args: Any, **kwargs: Any) -> str:
+        return create_error_html(*args, **kwargs)
