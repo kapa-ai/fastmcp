@@ -1193,9 +1193,9 @@ class OAuthProxy(OAuthProvider):
         upstream_token_set = UpstreamTokenSet(
             upstream_token_id=upstream_token_id,
             access_token=idp_tokens["access_token"],
-            refresh_token=idp_tokens["refresh_token"]
-            if idp_tokens.get("refresh_token")
-            else None,
+            refresh_token=(
+                idp_tokens["refresh_token"] if idp_tokens.get("refresh_token") else None
+            ),
             refresh_token_expires_at=refresh_token_expires_at,
             expires_at=time.time() + expires_in,
             token_type=idp_tokens.get("token_type", "Bearer"),
@@ -1760,7 +1760,7 @@ class OAuthProxy(OAuthProvider):
                     error_description,
                 )
                 # Show error page to user
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message=f"Authentication failed: {error_description or 'Unknown error'}",
                     error_details={"Error Code": error} if error else None,
@@ -1769,7 +1769,7 @@ class OAuthProxy(OAuthProvider):
 
             if not idp_code or not txn_id:
                 logger.error("IdP callback missing code or transaction ID")
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message="Missing authorization code or transaction ID from the identity provider.",
                 )
@@ -1779,7 +1779,7 @@ class OAuthProxy(OAuthProvider):
             transaction_model = await self._transaction_store.get(key=txn_id)
             if not transaction_model:
                 logger.error("IdP callback with invalid transaction ID: %s", txn_id)
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message="Invalid or expired authorization transaction. Please try authenticating again.",
                 )
@@ -1837,7 +1837,7 @@ class OAuthProxy(OAuthProvider):
 
             except Exception as e:
                 logger.error("IdP token exchange failed: %s", e)
-                html_content = create_error_html(
+                html_content = self.create_error_html(
                     error_title="OAuth Error",
                     error_message=f"Token exchange with identity provider failed: {e}",
                 )
@@ -1888,7 +1888,7 @@ class OAuthProxy(OAuthProvider):
 
         except Exception as e:
             logger.error("Error in IdP callback handler: %s", e, exc_info=True)
-            html_content = create_error_html(
+            html_content = self.create_error_html(
                 error_title="OAuth Error",
                 error_message="Internal server error during OAuth callback processing. Please try again.",
             )
@@ -2117,7 +2117,7 @@ class OAuthProxy(OAuthProvider):
             server_icon_url = None
             server_website_url = None
 
-        html = create_consent_html(
+        html = self.create_consent_html(
             client_id=txn["client_id"],
             redirect_uri=txn["client_redirect_uri"],
             scopes=txn.get("scopes") or [],
@@ -2214,3 +2214,13 @@ class OAuthProxy(OAuthProvider):
             return create_secure_html_response(
                 "<h1>Error</h1><p>Invalid action</p>", status_code=400
             )
+
+    # -------------------------------------------------------------------------
+    # HTML Creation Methods (for overriding)
+    # -------------------------------------------------------------------------
+
+    def create_consent_html(self, *args: Any, **kwargs: Any) -> str:
+        return create_consent_html(*args, **kwargs)
+
+    def create_error_html(self, *args: Any, **kwargs: Any) -> str:
+        return create_error_html(*args, **kwargs)
