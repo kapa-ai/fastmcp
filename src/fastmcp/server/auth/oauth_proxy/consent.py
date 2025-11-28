@@ -273,6 +273,7 @@ class ConsentMixin:
             server_icon_url=server_icon_url,
             server_website_url=server_website_url,
             csp_policy=self._consent_csp_policy,
+            request=request,
         )
         response = create_secure_html_response(html)
         # Store CSRF in cookie with short lifetime

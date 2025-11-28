@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
+from starlette.requests import Request
+
 from fastmcp.utilities.ui import (
     BUTTON_STYLES,
     DETAIL_BOX_STYLES,
@@ -32,6 +34,7 @@ def create_consent_html(
     server_website_url: str | None = None,
     client_website_url: str | None = None,
     csp_policy: str | None = None,
+    request: Request | None = None,
 ) -> str:
     """Create a styled HTML consent page for OAuth authorization requests.
 
