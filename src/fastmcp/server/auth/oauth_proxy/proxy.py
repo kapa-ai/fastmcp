@@ -1624,6 +1624,12 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
 
             logger.debug(f"Forwarding to client callback for transaction {txn_id}")
 
+            # If create_callback_external_redirect_html exists and the client
+            # callback URL is not HTTP, render a HTML page to handle the
+            # redirect with a smooth UX.
+            if hasattr(self, "get_callback_redirect_response"):
+                return self.get_callback_redirect_response(client_callback_url)
+
             return RedirectResponse(url=client_callback_url, status_code=302)
 
         except Exception as e:
