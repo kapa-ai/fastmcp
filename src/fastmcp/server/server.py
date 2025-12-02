@@ -35,6 +35,7 @@ from mcp.types import (
     AnyFunction,
     CallToolRequestParams,
     ToolAnnotations,
+    InitializeResult,
 )
 from pydantic import AnyUrl
 from pydantic import ValidationError as PydanticValidationError
@@ -243,6 +244,9 @@ class FastMCP(
         list_page_size: int | None = None,
         tasks: bool | None = None,
         session_state_store: AsyncKeyValue | None = None,
+        wrap_initialize_result: (
+            Callable[[InitializeResult], InitializeResult] | None
+        ) = None,
         # ---
         # --- DEPRECATED parameters ---
         # ---
@@ -331,6 +335,10 @@ class FastMCP(
         self._lifespan_result: LifespanResultT | None = None
         self._lifespan_result_set: bool = False
         self._started: asyncio.Event = asyncio.Event()
+
+        self._wrap_initialize_result: (
+            Callable[[mcp.types.ServerResult], mcp.types.ServerResult] | None
+        ) = wrap_initialize_result
 
         # Generate random ID if no name provided
         self._mcp_server: LowLevelServer[LifespanResultT, Any] = LowLevelServer[

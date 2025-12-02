@@ -99,6 +99,9 @@ class MiddlewareServerSession(ServerSession):
             async def capturing_respond(
                 response: mcp.types.ServerResult,
             ) -> None:
+                if self.fastmcp._wrap_initialize_result:
+                    response = self.fastmcp._wrap_initialize_result(response)
+
                 nonlocal captured_response
                 captured_response = response
                 return await original_respond(response)
