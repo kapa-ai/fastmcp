@@ -241,6 +241,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         extra_token_params: dict[str, str] | None = None,
         # Client storage
         client_storage: AsyncKeyValue | None = None,
+        client_storage_collection_prefix: str | None = None,
         # JWT signing key
         jwt_signing_key: str | bytes | None = None,
         # Consent screen configuration
@@ -283,6 +284,8 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
                 Useful for provider-specific parameters during token exchange.
             client_storage: Storage backend for OAuth state (client registrations, tokens).
                 If None, an encrypted DiskStore will be created in the data directory.
+            client_storage_collection_prefix: Prefix for the client storage collection.
+                If None (default), the collection will not be prefixed.
             jwt_signing_key: Secret for signing FastMCP JWT tokens (any string or bytes).
                 If bytes are provided, they will be used as-is.
                 If a string is provided, it will be derived into a 32-byte key using PBKDF2 (1.2M iterations).
@@ -415,6 +418,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
             )
 
         self._client_storage: AsyncKeyValue = client_storage
+        self._client_storage_collection_prefix = client_storage_collection_prefix or ""
 
         # Cache HTTPS check to avoid repeated logging
         self._is_https: bool = str(self.base_url).startswith("https://")
@@ -428,7 +432,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         ](
             key_value=self._client_storage,
             pydantic_model=UpstreamTokenSet,
-            default_collection="mcp-upstream-tokens",
+            default_collection=f"{self._client_storage_collection_prefix}mcp-upstream-tokens",
             raise_on_validation_error=True,
         )
 
@@ -437,7 +441,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         ](
             key_value=self._client_storage,
             pydantic_model=ProxyDCRClient,
-            default_collection="mcp-oauth-proxy-clients",
+            default_collection=f"{self._client_storage_collection_prefix}mcp-oauth-proxy-clients",
             raise_on_validation_error=True,
         )
 
@@ -448,14 +452,14 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         ](
             key_value=self._client_storage,
             pydantic_model=OAuthTransaction,
-            default_collection="mcp-oauth-transactions",
+            default_collection=f"{self._client_storage_collection_prefix}mcp-oauth-transactions",
             raise_on_validation_error=True,
         )
 
         self._code_store: PydanticAdapter[ClientCode] = PydanticAdapter[ClientCode](
             key_value=self._client_storage,
             pydantic_model=ClientCode,
-            default_collection="mcp-authorization-codes",
+            default_collection=f"{self._client_storage_collection_prefix}mcp-authorization-codes",
             raise_on_validation_error=True,
         )
 
@@ -465,7 +469,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         ](
             key_value=self._client_storage,
             pydantic_model=JTIMapping,
-            default_collection="mcp-jti-mappings",
+            default_collection=f"{self._client_storage_collection_prefix}mcp-jti-mappings",
             raise_on_validation_error=True,
         )
 
@@ -477,7 +481,7 @@ class OAuthProxy(OAuthProvider, ConsentMixin):
         ] = PydanticAdapter[RefreshTokenMetadata](
             key_value=self._client_storage,
             pydantic_model=RefreshTokenMetadata,
-            default_collection="mcp-refresh-tokens",
+            default_collection=f"{self._client_storage_collection_prefix}mcp-refresh-tokens",
             raise_on_validation_error=True,
         )
 
